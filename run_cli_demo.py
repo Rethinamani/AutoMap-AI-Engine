@@ -12,6 +12,8 @@ from utils.file_handler import read_file, save_file
 from utils.schema_extractor import extract_schema
 from mapping.mapper import get_mapping, save_mapping
 from transform.transformer import apply_transformations
+from config import MODEL_NAME
+
 
 def main():
     parser = argparse.ArgumentParser(description="🧠 Data Mapping & Migration AI - CLI Demo")
@@ -68,7 +70,7 @@ def main():
     print(f"   {target_schema}")
 
     # 3. Generate Mapping via AI
-    print("\n🤖 Querying AI (Qwen/Qwn3-30B-A3B) for mapping...")
+    print(f"\n🤖 Querying AI ({MODEL_NAME}) for mapping...")
     mapping = get_mapping(source_schema, target_schema)
 
     if not mapping:
