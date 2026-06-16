@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests
-from config import VLLM_URL, MODEL_NAME
+from config import VLLM_URL, MODEL_NAME, VLLM_API_KEY
 
 
 def call_llm(source_schema, target_schema):
@@ -22,9 +22,14 @@ Valid transformations: "direct", "split", "merge", "date_format", "phone_normali
 ### Output:
 """
 
+    headers = {}
+    if VLLM_API_KEY:
+        headers["Authorization"] = f"Bearer {VLLM_API_KEY}"
+
     try:
         response = requests.post(
             VLLM_URL,
+            headers=headers,
             json={
                 "model": MODEL_NAME,
                 "prompt": prompt,
@@ -42,3 +47,4 @@ Valid transformations: "direct", "split", "merge", "date_format", "phone_normali
     except Exception as e:
         print(f"[vLLM] Error calling LLM: {e}")
         return "[]"
+
