@@ -27,10 +27,18 @@ def apply_transformations(df, mapping):
                 # Split a single column (e.g. "Full Name") into two target columns
                 targets = tgt if isinstance(tgt, list) else ["first_name", "last_name"]
                 parts = df[src].astype(str).str.split(n=1, expand=True)
+
+                # Assign first part (always present)
                 new_df[targets[0]] = parts[0] if 0 in parts.columns else ""
-                new_df[targets[1] if len(targets) > 1 else "last_name"] = (
-                    parts[1] if 1 in parts.columns else ""
-                )
+
+                # Assign second part — use empty string Series (not scalar)
+                # when the split didn't produce a second column
+                second_target = targets[1] if len(targets) > 1 else "last_name"
+                if 1 in parts.columns:
+                    # Fill NaN for rows that had no space to split on
+                    new_df[second_target] = parts[1].fillna("")
+                else:
+                    new_df[second_target] = ""
 
             elif t == "merge":
                 # Merge two source columns into one target column
