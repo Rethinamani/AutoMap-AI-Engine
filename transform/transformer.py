@@ -110,7 +110,7 @@ def _detect_dtype_mismatches(df, mapping):
 
         elif expected == "date":
             # Flag if values cannot be parsed as dates
-            parsed = pd.to_datetime(col, errors="coerce", infer_datetime_format=True)
+            parsed = pd.to_datetime(col, errors="coerce")
             bad_mask = parsed.isna()
             bad_count = bad_mask.sum()
             if bad_count > 0:
