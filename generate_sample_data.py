@@ -21,19 +21,13 @@ LAST_NAMES = [
 
 DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "company.org", "mail.co"]
 
-DATE_FORMATS = [
-    "{m}/{d}/{y}", "{d}-{m}-{y}", "{y}-{m:02d}-{d:02d}",
-    "{m:02d}/{d:02d}/{y}", "{d:02d}.{m:02d}.{y}",
-]
-
 
 def random_phone():
-    """Generate a phone number with random formatting."""
+    """Generate a phone number with random formatting (always a string)."""
     digits = f"{random.randint(200,999)}{random.randint(1000000,9999999)}"
     fmt = random.choice([
         "{0}{1}{2}-{3}{4}{5}-{6}{7}{8}{9}",
         "({0}{1}{2}) {3}{4}{5}-{6}{7}{8}{9}",
-        "+1{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}",
         "{0}{1}{2}.{3}{4}{5}.{6}{7}{8}{9}",
         "{0}{1}{2} {3}{4}{5} {6}{7}{8}{9}",
     ])
@@ -41,16 +35,15 @@ def random_phone():
 
 
 def random_date():
-    """Generate a date string with random format to simulate legacy messiness."""
+    """Generate a date string in a standard YYYY-MM-DD format."""
     y = random.randint(1960, 2005)
     m = random.randint(1, 12)
     d = random.randint(1, 28)
-    fmt = random.choice(DATE_FORMATS)
-    return fmt.format(y=y, m=m, d=d)
+    return f"{y}-{m:02d}-{d:02d}"
 
 
 def generate_legacy_data(n=100):
-    """Generate a DataFrame that looks like a messy legacy CRM export."""
+    """Generate a DataFrame that looks like a legacy CRM export."""
     rows = []
     for _ in range(n):
         first = random.choice(FIRST_NAMES)
@@ -63,7 +56,7 @@ def generate_legacy_data(n=100):
             "Addr_Line1": f"{random.randint(1, 9999)} {random.choice(['Main', 'Oak', 'Pine', 'Elm', 'Cedar'])} St",
             "City": random.choice(["New York", "Los Angeles", "Chicago", "Houston", "Phoenix"]),
             "St": random.choice(["NY", "CA", "IL", "TX", "AZ"]),
-            "Zip_Cd": str(random.randint(10000, 99999)),
+            "Zip_Cd": f"{random.randint(10000, 99999)}",
         })
     return pd.DataFrame(rows)
 

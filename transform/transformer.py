@@ -87,15 +87,29 @@ def _detect_dtype_mismatches(df, mapping):
             continue
 
         if expected == "string":
-            # Flag if values are purely numeric (int/float) when text is expected
-            numeric_mask = col.apply(_is_numeric_value)
-            bad_count = numeric_mask.sum()
-            if bad_count > 0:
-                examples = col[numeric_mask].head(3).tolist()
+            # Flag individual string values that look numeric.
+            # If the entire column is already a numeric pandas dtype (e.g. int64
+            # from Excel), that is a storage-format issue — warn about the whole
+            # column rather than every single value.
+            if pd.api.types.is_numeric_dtype(col):
                 warnings.append(
-                    f"Column '{src}' is expected to be text/string but "
-                    f"{bad_count} value(s) are numeric. Examples: {examples}"
+                    f"Column '{src}' is expected to be text/string but the "
+                    f"entire column is stored as numeric ({col.dtype}). "
+                    f"Examples: {col.head(3).tolist()}"
                 )
+            else:
+                # Object (string) column — flag individual rogue numeric values
+                numeric_mask = col.apply(
+                    lambda x: isinstance(x, str) and _is_pure_digit_string(x)
+                )
+                bad_count = numeric_mask.sum()
+                if bad_count > 0:
+                    examples = col[numeric_mask].head(3).tolist()
+                    warnings.append(
+                        f"Column '{src}' is expected to be text/string but "
+                        f"{bad_count} value(s) are numeric strings. "
+                        f"Examples: {examples}"
+                    )
 
         elif expected == "number":
             # Flag if values are non-numeric strings when number is expected
@@ -124,11 +138,35 @@ def _detect_dtype_mismatches(df, mapping):
 
 
 def _is_numeric_value(x):
-    """Check whether a single value is numeric (int or float)."""
+    """Check whether a single value is numeric (int or float).
+
+    Only flags actual numeric Python types or strings that consist purely
+    of digits (with an optional single decimal point and optional leading minus).
+    Strings like '+17595737284' or '(800) 555-1234' are NOT considered numeric.
+    """
     if isinstance(x, (int, float)):
         return True
-    try:
-        float(str(x))
-        return True
-    except (ValueError, TypeError):
+    s = str(x).strip()
+    if not s:
         return False
+    # Allow a leading minus for negative numbers
+    if s.startswith("-"):
+        s = s[1:]
+    # Must be digits, optionally with one decimal point
+    parts = s.split(".")
+    if len(parts) == 1:
+        return parts[0].isdigit() and len(parts[0]) > 0
+    elif len(parts) == 2:
+        return parts[0].isdigit() and parts[1].isdigit()
+    return False
+
+
+def _is_pure_digit_string(x):
+    """Check whether a string value is purely digits (no signs, decimals, etc.).
+
+    Used to detect rogue numeric values inside text columns,
+    e.g. Cust_Nm = '845623' when it should be a name.
+    """
+    s = str(x).strip()
+    return s.isdigit() and len(s) > 0
+
