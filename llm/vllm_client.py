@@ -12,9 +12,15 @@ def call_llm(source_schema, target_schema):
     """Send source/target schemas to the local vLLM server and return the raw text."""
 
     prompt = f"""### Instruction:
-Map each source column to the best matching target column.
-Return a JSON array where each element has "source", "target", and "transformation" keys.
-Valid transformations: "direct", "split", "merge", "date_format", "phone_normalize".
+Map each source column to the best matching target column using direct renaming only.
+Do NOT apply any transformations — just map source columns to their closest target columns.
+Each source column should map to exactly one target column.
+Also specify the "expected_dtype" for each source column: "string", "number", or "date".
+
+Return ONLY a JSON array. Each element must have these keys:
+- "source": the source column name (exact match)
+- "target": the target column name (exact match)
+- "expected_dtype": the expected data type of the source column ("string", "number", or "date")
 
 ### Input:
 {{"source_schema": {source_schema}, "target_schema": {target_schema}}}
@@ -47,4 +53,3 @@ Valid transformations: "direct", "split", "merge", "date_format", "phone_normali
     except Exception as e:
         print(f"[vLLM] Error calling LLM: {e}")
         return "[]"
-

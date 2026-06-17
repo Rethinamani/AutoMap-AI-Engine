@@ -35,7 +35,7 @@ uploaded_file = st.file_uploader("Upload Legacy Excel", type=["xlsx", "xls"])
 
 target_schema_input = st.text_input(
     "Enter Target Schema (comma separated)",
-    value="first_name, last_name, phone, email, dob",
+    value="Customer_name, phone, email, dob, address, city, postal_code",
 )
 
 # ── Main Logic ─────────────────────────────────────────────────────────
@@ -65,10 +65,10 @@ if uploaded_file and target_schema_input:
     else:
         st.warning("No mapping was generated. Check that your vLLM server is running.")
 
-    # ── Apply Transformation ───────────────────────────────────────────
-    if mapping and st.button("✅ Apply Transformation"):
-        with st.spinner("Applying transformations..."):
-            new_df = apply_transformations(df, mapping)
+    # ── Apply Mapping ─────────────────────────────────────────────────
+    if mapping and st.button("✅ Apply Mapping"):
+        with st.spinner("Applying column mappings..."):
+            new_df, report = apply_transformations(df, mapping)
 
             # Write to a temp file so we don't pollute the project folder
             tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
@@ -85,6 +85,31 @@ if uploaded_file and target_schema_input:
                     file_name="mapped.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 )
+
+            # ── Report: Omitted rows ──────────────────────────────────
+            if report["dropped_rows"] > 0:
+                st.warning(
+                    f"⚠️ **{report['dropped_rows']} row(s)** were omitted because "
+                    f"they contained empty/missing values."
+                )
+                if report["dropped_indices"]:
+                    shown = [str(i + 1) for i in report["dropped_indices"][:20]]
+                    suffix = (
+                        f" (and {report['dropped_rows'] - 20} more)"
+                        if report["dropped_rows"] > 20
+                        else ""
+                    )
+                    st.caption(f"Omitted row numbers: {', '.join(shown)}{suffix}")
+            else:
+                st.success("✅ All rows are complete — no rows were omitted.")
+
+            # ── Report: Datatype warnings ─────────────────────────────
+            if report["dtype_warnings"]:
+                st.write("### 🔍 Data Quality Warnings")
+                for w in report["dtype_warnings"]:
+                    st.warning(f"⚠️ {w}")
+            else:
+                st.success("✅ No datatype mismatches detected.")
 
             save_mapping(source_schema, mapping)
             st.info("💾 Mapping saved to learning memory for future use.")
